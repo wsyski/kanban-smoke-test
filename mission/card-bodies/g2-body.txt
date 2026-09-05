@@ -1,0 +1,8 @@
+GATE (human — this card never spawns a worker). Authorization record for the 'Java word-count CLI' smoke mission.
+
+Before completing this gate:
+1. hermes kanban --board smoke-test show <RVA-id> — reviewer verdict is PASS.
+2. In <REPO>: git status shows the finished project staged (tests/, WordCount.java or src/, .gitignore); git log still at the baseline commit (stage-only held).
+3. bash tests/run_count_words.sh passes from the staged tree.
+4. Commit the staged project (the human authorization record) and push to origin.
+5. kanban_complete this gate with the commit SHA and pushed ref as the result.
