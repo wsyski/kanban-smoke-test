@@ -2,12 +2,12 @@ VERDICT CARD — you are the structural reviewer between the coder card and the 
 
 HARD RULES: (1) Do NOT commit, branch, stash, reset, restore or clean. (2) Read-only on the repo except writing /tmp/<YOUR-CARD-ID>.review notes. (3) Do not write profile memories.
 
-TASK: Final review verdict on the staged implementation. The parent card (coder) completed with its own summary; the tester's acceptance tests are in tests/. Do all of:
-(a) git diff --cached — read the full staged diff; confirm it contains only mission files (sources, .gitignore, tests/) and no build/ output, no stray files.
-(b) Run the acceptance suite yourself: build if build/ is missing (javac -d build from repo root), then bash tests/run_count_words.sh; verify the GREEN summary.
-(c) Spot-check the contract by hand: empty file, whitespace-only file, missing file (exit codes 0/0/2, stdout/stderr as specified).
-(d) Confirm no commit happened (git log unchanged) and the hard rules were honored.
+TASK: Final review verdict on the staged implementation. The parent card (coder) completed with its own summary; acceptance tests are under tests/. Do all of:
+(a) git diff --cached — read the full staged diff; confirm it contains only mission files (sources, build descriptor, tests/) and no build output (build/, target/, node_modules/) and no stray files.
+(b) Run EVERY acceptance suite in tests/ (for s in tests/run_*.sh; do bash $s; done) after any build each suite needs; verify every suite's GREEN summary — earlier missions' suites must still pass (regression check).
+(c) Spot-check the contract by hand against the suite fixtures (stdout/exit-code cases, error cases).
+(d) Confirm no commit happened (git log unchanged at baseline) and the hard rules were honored.
 
 VERDICT PROTOCOL:
-- PASS: kanban_complete with a result summary listing what you verified and the acceptance output.
+- PASS: kanban_complete with a verdict summary in the RESULT FIELD (not only the summary): what you verified + each suite's output line.
 - DEFECT FOUND: do NOT complete. Create a rework card (kanban_create, assignee coder, title 'REWORK: <defect>', body naming the defect and the failing check, workspace dir:<REPO>), link it as YOUR OWN parent (kanban_link so that when the rework completes, this review card re-runs), then block THIS card naming the rework card id. Completing with a known defect is the failure mode this lane exists to prevent.
