@@ -42,7 +42,7 @@ done
 shift $((OPTIND - 1))
 PHASE=${1:?phase: file | launch | drive | gate}
 GATE_SHA=${2:-}
-case "$MISSION" in 1|2|all) ;; *) echo "-m must be 1, 2 or all"; exit 2 ;; esac
+case "$MISSION" in 1|2|3|all) ;; *) echo "-m must be 1, 2, 3 or all"; exit 2 ;; esac
 
 kb() { hermes kanban --board "$BOARD" "$@"; }
 
@@ -68,6 +68,9 @@ M2_C1="C12: implement - WordCountService"
 M2_RVA="RVa2: reviewer verdict - WordCountService"
 M2_TI="TI: end-to-end integration tests - WordCountService"
 M2_G2="Gate: approve and commit - WordCountService"
+M3_C1="C13: mavenize word-count CLI"
+M3_RVA="RVa3: reviewer verdict - mavenized word-count CLI"
+M3_G2="Gate: approve and commit - Maven word-count CLI"
 
 subst() { sed "s|<REPO>|$REPO|g" "$1"; }
 
@@ -145,10 +148,29 @@ file_m2() {
   echo "M2 filed: TW2=$M2_TW_ID C12=$M2_C1_ID RVa2=$M2_RVA_ID TI=$M2_TI_ID G2b=$M2_G2_ID (root parented to M1 gate $g2)"
 }
 
+file_m3() {
+  # M3 = Maven conversion of the word-count CLI. No TW card: the acceptance
+  # suite exists (task 1) and is frozen — it IS the spec. Root parented to
+  # M2's gate.
+  local g2b
+  g2b=$(id_by_title "$M2_G2")
+  [ -n "$g2b" ] || { echo "mission 2 gate not on board — file mission 2 first"; exit 1; }
+  M3_C1_ID=$(create_if_missing "$M3_C1" "$(subst "$HERE/card-bodies/c1-maven-body.txt")" "$KEY-m3-c1" \
+    --parent "$g2b" --extra --workspace "dir:$REPO" \
+    --skill subagent-driven-development --max-retries 1 --max-runtime 30m)
+  M3_RVA_ID=$(create_if_missing "$M3_RVA" "$(subst "$HERE/card-bodies/rva-body.txt")" "$KEY-m3-rva" \
+    --parent "$M3_C1_ID" --extra --workspace "dir:$REPO" \
+    --max-retries 1 --max-runtime 30m)   # NO --goal
+  M3_G2_ID=$(create_if_missing "$M3_G2" "$(subst "$HERE/card-bodies/g2-body.txt")" "$KEY-m3-g2" \
+    --parent "$M3_RVA_ID" --max-retries 1)
+  echo "M3 filed: C13=$M3_C1_ID RVa3=$M3_RVA_ID G3=$M3_G2_ID (root parented to M2 gate $g2b)"
+}
+
 case "$PHASE" in
 file)
   if [ "$MISSION" = 1 ] || [ "$MISSION" = all ]; then file_m1; fi
   if [ "$MISSION" = 2 ] || [ "$MISSION" = all ]; then file_m2; fi
+  if [ "$MISSION" = 3 ] || [ "$MISSION" = all ]; then file_m3; fi
   ;;
 
 launch)
@@ -194,6 +216,15 @@ drive)
       kb assign "$TI" tester; echo "M2: TI -> tester (e2e + full suite)"
     fi
   fi
+  if [ "$MISSION" = 3 ] || [ "$MISSION" = all ]; then
+    C13=$(id_by_title "$M3_C1"); RVA3=$(id_by_title "$M3_RVA")
+    if [ -n "$C13" ] && [ "$(status_of "$C13")" = ready ]; then
+      kb assign "$C13" coder; echo "M3: C13 -> coder (M2 gate done — sequence honored)"
+    fi
+    if [ -n "$RVA3" ] && [ "$(status_of "$C13")" = done ] && [ "$(status_of "$RVA3")" = ready ]; then
+      kb assign "$RVA3" reviewer; echo "M3: RVa3 -> reviewer"
+    fi
+  fi
   kb list
   ;;
 
@@ -217,6 +248,15 @@ gate)
         --result "Committed $GATE_SHA and pushed to origin main. Evidence: RVa2 PASS + TI e2e suite GREEN; stage-only invariant held until this commit." \
         --summary "Human gate executed (mission 2): commit $GATE_SHA pushed."
       echo "M2 gate $G completed with $GATE_SHA"; G_DONE=1
+    fi
+  fi
+  if [ -z "$G_DONE" ] && { [ "$MISSION" = 3 ] || [ "$MISSION" = all ]; }; then
+    G=$(id_by_title "$M3_G2")
+    if [ -n "$G" ] && [ "$(status_of "$G")" != done ]; then
+      kb complete "$G" \
+        --result "Committed $GATE_SHA and pushed to origin main. Evidence: RVa3 PASS, run_count_words.sh GREEN via Maven build; stage-only invariant held until this commit." \
+        --summary "Human gate executed (mission 3): commit $GATE_SHA pushed."
+      echo "M3 gate $G completed with $GATE_SHA"; G_DONE=1
     fi
   fi
   [ -n "$G_DONE" ] || { echo "no pending gate found for mode $MISSION"; exit 1; }
