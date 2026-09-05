@@ -2,14 +2,15 @@
 # Black-box acceptance tests for the 'WordCount' console program.
 #
 # Contract under test (invocation from repo root):
-#   java -cp build WordCount <file>
+#   mvn -q -DskipTests compile   (build)
+#   java -cp target/classes WordCount <file>
 #   - reads a UTF-8 text file, prints ONE line to stdout: the number of
 #     words (whitespace-separated tokens), exits 0
 #   - empty file / whitespace-only file: prints 0, exit 0
 #   - missing file: message on stderr, exit 2
 #
 # Asserts observable behavior only (stdout / stderr / exit code).
-# Plain bash, no pytest, no build tools. Exit 0 iff every check passes.
+# Plain bash, no pytest. Build: mvn -q -DskipTests compile. Exit 0 iff every check passes.
 
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -22,7 +23,7 @@ STDERR_FILE=$(mktemp)
 trap 'rm -f "$STDOUT_FILE" "$STDERR_FILE"' EXIT
 
 run_wc() {
-  java -cp build WordCount "$1" >"$STDOUT_FILE" 2>"$STDERR_FILE"
+  java -cp target/classes WordCount "$1" >"$STDOUT_FILE" 2>"$STDERR_FILE"
 }
 
 pass() {
@@ -59,7 +60,7 @@ check_count() {
   fi
 }
 
-echo "WordCount acceptance tests (java -cp build WordCount <file>)"
+echo "WordCount acceptance tests (java -cp target/classes WordCount <file>)"
 
 check_count "three-words.txt prints 3, exit 0" \
   "$FX/three-words.txt" 3

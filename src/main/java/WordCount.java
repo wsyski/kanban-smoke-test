@@ -8,7 +8,7 @@ public class WordCount {
 
     public static void main(String[] args) {
         if (args.length != 1) {
-            System.err.println("Usage: java -cp build WordCount <file>");
+            System.err.println("Usage: java -cp target/classes WordCount <file>");
             System.exit(2);
         }
         Path path = Paths.get(args[0]);

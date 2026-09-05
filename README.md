@@ -10,12 +10,12 @@ Two things live here:
    whitespace-separated words.
 
    ```
-   javac -d build WordCount.java
-   java -cp build WordCount tests/fixtures/three-words.txt   # -> 3
-   bash tests/run_count_words.sh                             # 5 acceptance checks
+   mvn -q -DskipTests compile
+   java -cp target/classes WordCount tests/fixtures/three-words.txt   # -> 3
+   bash tests/run_count_words.sh                                      # 5 acceptance checks
    ```
 
-   Contract: `java -cp build WordCount <file>` → count on stdout, exit 0;
+   Contract: `java -cp target/classes WordCount <file>` → count on stdout, exit 0;
    empty / whitespace-only file → `0`; missing file → stderr message, exit 2.
 
 2. **The mission recipe** (under `mission/`) — everything needed to re-execute
