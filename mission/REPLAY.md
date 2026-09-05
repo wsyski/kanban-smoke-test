@@ -64,13 +64,19 @@ Attempt history: `hermes kanban --board smoke-test runs <card-id>`.
 
 **Intervention rules** (nothing here should take more than a few minutes):
 
-- card `running` but log silent/stale for >5 min →
-  `hermes kanban --board smoke-test reclaim <id>` then `block --kind needs_input <id> "stalled"`, examine, fix, `unblock`.
+- worker cards carry `--max-runtime 30m --max-retries 1`: a wedged worker is
+  SIGTERMed and re-queued once, then trips into a visible `blocked` — no
+  silent looping. Manual version for faster reaction:
+  `hermes kanban --board smoke-test reclaim <id>` then
+  `block --kind needs_input <id> "stalled"`, examine, fix, `unblock`.
 - worker failed N times → card auto-`blocked`; read the log tail, fix the
   environment (not the card body), `unblock <id>`.
 - card finished but shows a stale "still running" nudge → known cosmetic
   dispatcher-view lag; check `runs <id>` — if the last run is `completed`,
   move on.
+- `launch` is a no-op when TW is already done — a second launch cannot
+  double-run the mission; for a fresh replay use a new `-k` prefix (and
+  archive or reset the old cards).
 
 ## 5. Drive the hand-offs (the only manual step per card)
 

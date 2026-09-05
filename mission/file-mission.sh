@@ -63,7 +63,8 @@ file)
   [ -n "$TW_ID" ] || kb create "$TW_TITLE" \
     --body "$(cat "$HERE/card-bodies/tw-body.txt")" \
     --assignee human-gate --workspace "dir:$REPO" \
-    --skill test-driven-development --max-retries 1 \
+    --skill test-driven-development --max-retries 1 --max-runtime 30m \
+    --initial-status blocked \
     --idempotency-key "$KEY-tw" --created-by manager --json >/dev/null
 
   C1_ID=$(id_by_title "$C1_TITLE")
@@ -71,7 +72,7 @@ file)
     --body "$(sed "s|<REPO>|$REPO|g" "$HERE/card-bodies/c1-body.txt")" \
     --assignee human-gate --parent "$(id_by_title "$TW_TITLE")" \
     --workspace "dir:$REPO" \
-    --skill subagent-driven-development --max-retries 1 \
+    --skill subagent-driven-development --max-retries 1 --max-runtime 30m \
     --idempotency-key "$KEY-c1" --created-by manager --json >/dev/null
 
   # RVa: NO --goal (the judge can push a reviewer to complete and open the gate).
@@ -79,7 +80,7 @@ file)
   [ -n "$RVA_ID" ] || kb create "$RVA_TITLE" \
     --body "$(sed "s|<REPO>|$REPO|g" "$HERE/card-bodies/rva-body.txt")" \
     --assignee human-gate --parent "$(id_by_title "$C1_TITLE")" \
-    --workspace "dir:$REPO" --max-retries 1 \
+    --workspace "dir:$REPO" --max-retries 1 --max-runtime 30m \
     --idempotency-key "$KEY-rva" --created-by manager --json >/dev/null
 
   # G2: scratch workspace — a gate never spawns.
@@ -95,9 +96,14 @@ file)
 launch)
   TW=$(id_by_title "$TW_TITLE")
   [ -n "$TW" ] || { echo "no TW on board — run 'file' first"; exit 1; }
-  kb unblock "$TW"
-  kb assign "$TW" tester
-  echo "Launched: TW=$TW assigned to tester. Downstream cards stay parked on human-gate."
+  TW_ST=$(kb show "$TW" --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["task"]["status"])')
+  if [ "$TW_ST" = done ]; then
+    echo "TW already done — nothing to launch (re-run 'file' with a fresh -k prefix for a new mission)."
+  else
+    kb unblock "$TW"
+    kb assign "$TW" tester
+    echo "Launched: TW=$TW assigned to tester. Downstream cards stay parked on human-gate."
+  fi
   ;;
 
 drive)

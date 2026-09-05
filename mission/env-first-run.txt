@@ -23,12 +23,16 @@ G2=t_5163381e    # human    commit 74274bb pushed
 #     hermes kanban boards set-default-workdir smoke-test <repo>)
 #   but every card also pins --workspace dir:<repo> explicitly (belt+braces:
 #   an omitted workspace silently becomes fresh scratch).
+# - worker cards carry --max-runtime 30m: a wedged worker is SIGTERMed and
+#   re-queued; with --max-retries 1 the retry trips into a visible `blocked`
+#   instead of looping forever.
+# - the root card is created with --initial-status blocked (atomically parked
+#   at creation) and only unblocked+assigned at launch — a root with a real
+#   assignee is ready immediately and the dispatcher may claim it mid-filing.
+#   launch is a safe no-op once TW is done (prevents double-launch after replay).
 # - dispatch owner = the default-profile gateway (dispatch_in_gateway: true in
 #     ~/.hermes/config.yaml); verify: lsof ~/.hermes/kanban/.dispatcher.lock
 #     then `ps -p <pid> -o cmd=`.
 # - dispatcher tick: 60s (kanban.dispatch_interval_seconds).
-# - every root card is created on the human-gate lane (assignee human-gate),
-#   blocked, and only unblocked+assigned at launch — a root with a real
-#   assignee is ready immediately and the dispatcher may claim it mid-filing.
 # - never put --goal on reviewer/gate cards: the judge can push a reviewer to
 #   complete and silently open the gate it guards.
