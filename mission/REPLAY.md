@@ -1,5 +1,37 @@
 # Replay manual — kanban smoke missions (word-count CLI, Spring Boot service, Maven)
 
+**Scenario v2 (plan-first, stage-only, 2 sequential tasks) executed end-to-end
+2026-09-06 13:09→16:42** — full timing data in `timing.jsonl` (609 driver
+ticks), report generator `timing-report.py`. Gate commits: plan-1 `cfb1401`,
+task 1 `8482b99`, plan-2 `0760d50` (after 2 REJECT rounds), task 2 `479f8e7`.
+
+| card | phase | work | note |
+|---|---|---|---|
+| P1 / TW1 / C1 chain (task 1) | plan→tests→code | 16/9/3 min | RVp1 PASS, no rework |
+| P2 (salvage reuse) | plan | 1 min | reuse vs 16-22 min fresh |
+| RVp2→rev1→RVp2-r2→rev2→RVp2-r3 | rework loop | 14/11/11/23/10 | 2 REJECTs — quality filter, end-to-end rework proof |
+| TW2 / C2 / TI2 / RVc2 (task 2) | contract→code→ITs | 5/24/15.../2/5 | 7 contract + 8 unit + 6 IT GREEN |
+
+**Totals:** 175 min agent work / 213 min wall = 18% overhead (run 1 was 53%).
+Economics: dispatch gaps ~20 min, budget exhaustion cost ~20 min (pre-bump),
+REJECT loops 59 min (productive quality filtering), human gate latency ~3 min.
+
+**Key lessons baked into assets:**
+- Unconditional stage-only enforcement: card bodies forbid commits; the
+  driver (`run.py`) never commits — gate cards get "HUMAN COMMIT REQUIRED".
+- `agent.max_turns` is profile config (inherit global 80; never shadow it
+  per-profile — both lower caps AND overriding proved harmful).
+- Plan/revision cards burn turns on exhaustive re-verification of a large
+  file: card bodies carry turn-diet guidance (targeted patches only).
+- Re-filing a board mid-run orphans running workers (they keep burning
+  budget on archived cards and can re-stage stale files) — re-file only
+  after archiving + reclaiming every card.
+- Repair hooks: run.py's gates are idempotent (explicit pathspecs,
+  no porcelain parsing, recorded-sha skip) — a stalled run recovers with
+  a single driver restart, never manual surgery.
+
+The historical v1 record (three-mission layout) is below for provenance.
+
 Three sequential missions on ONE board (`smoke-test`), all executed verbatim
 2026-09-05; per-card provenance in `env-first-run.txt` and README.md:
 
