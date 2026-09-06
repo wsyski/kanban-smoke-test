@@ -130,7 +130,10 @@ there (their wall-clock latency is counted in the overhead section, not as
 work). This table IS the execution order: every card is listed in the
 sequence the board ran it.
 
-### How it flows (one diagram)
+### How it flows (diagram)
+
+Interactive diagram: **`mission/flow.drawio`** — open in draw.io / diagrams.net;
+color keys per profile, thick borders = human gates. ASCII fallback:
 
 ```
         task 1                                   task 2

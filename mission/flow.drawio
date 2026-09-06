@@ -1,0 +1,100 @@
+<mxfile host="app.diagrams.net" agent="kanban-smoke-doc" version="24.0.0">
+  <diagram id="smoke-flow" name="Scenario v2 flow">
+    <mxGraphModel dx="1400" dy="850" grid="1" gridSize="10" page="1" pageWidth="1160" pageHeight="720">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t1" value="TASK 1 — wordcount CLI" style="text;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="TASK 2 — wordcount service (unlocks at Gc1 commit)" style="text;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="440" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="P1" value="P1 plan" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="RVp1" value="RVp1 review" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="210" y="60" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="Gp1" value="Gp1 GATE — human commits plan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="200" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="TW1" value="TW1 tests RED" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="310" y="150" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="C1" value="C1 implement" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="470" y="150" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="RVa1" value="RVa1 review" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="630" y="150" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="Gc1" value="Gc1 GATE — human commits code" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="P2" value="P2 plan" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="270" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="RVp2" value="RVp2 review" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="210" y="270" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="rework" value="REWORK (up to 3 rounds)&#10;REJECT → P-fix → re-review → PASS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="360" width="240" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="Gp2" value="Gp2 GATE — human commits plan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="440" width="200" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="TW2" value="TW2 contract tests RED" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="310" y="440" width="160" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="C2" value="C2 implement" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="520" y="440" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="RVa2" value="RVa2 review" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="680" y="440" width="120" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="TI2" value="TI2 failsafe ITs" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="840" y="440" width="130" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="RVc2" value="RVc2 final review" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;" vertex="1" parent="1">
+          <mxGeometry x="700" y="540" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Gc2" value="Gc2 GATE — human commits code (END)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="620" width="260" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="key" value="blue=plan (manager) · orange=review (reviewer) · green=build/test · thick=HUMAN GATE (0 agent time)" style="text;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="520" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="P1" target="RVp1" />
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="RVp1" target="Gp1" />
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="Gp1" target="TW1" />
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="TW1" target="C1" />
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="C1" target="RVa1" />
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="RVa1" target="Gc1" />
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="Gc1" target="P2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1060" y="180" /><mxPoint x="1060" y="115" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="P2" target="RVp2" />
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="RVp2" target="rework">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="170" y="380" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e9l" value="REJECT" style="text;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="175" y="360" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="rework" target="Gp2">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="350" y="420" /><mxPoint x="160" y="420" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e10l" value="PASS" style="text;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="160" y="400" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="Gp2" target="TW2" />
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="TW2" target="C2" />
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="C2" target="RVa2" />
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="RVa2" target="TI2" />
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="TI2" target="RVc2" />
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="RVc2" target="Gc2" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
