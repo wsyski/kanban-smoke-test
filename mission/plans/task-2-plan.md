@@ -87,7 +87,7 @@ version supersedes the earlier one. All three patches remain valid provenance.
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+    </dependencies>
 
   <build>
     <plugins>
@@ -356,24 +356,28 @@ Inside the existing `<build><plugins>` section, add:
               <generatorName>spring</generatorName>
               <apiPackage>dev.kanban.wordcount.api</apiPackage>
               <modelPackage>dev.kanban.wordcount.model</modelPackage>
-              <interfaceOnly>true</interfaceOnly>
-              <useTags>true</useTags>
-              <skipDefaultInterface>true</skipDefaultInterface>
-              <documentationProvider>none</documentationProvider>
-              <useSpringBoot3>true</useSpringBoot3>
+              <configOptions>
+                <interfaceOnly>true</interfaceOnly>
+                <useTags>true</useTags>
+                <skipDefaultInterface>true</skipDefaultInterface>
+                <documentationProvider>none</documentationProvider>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useBeanValidation>false</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+              </configOptions>
             </configuration>
           </execution>
         </executions>
       </plugin>
 ```
 
-(`documentationProvider=none` keeps swagger annotations out of generated code — no runtime dependency beyond starter-web. Generation binds to the `generate-sources` phase, so every `mvn test`/`verify` regenerates into `target/generated-sources`.)
+(The seven `interfaceOnly`/`useTags`/`skipDefaultInterface`/`documentationProvider`/`useSpringBoot3`/`useBeanValidation`/`openApiNullable` switches MUST live inside `<configOptions>` — directly under `<configuration>` the 7.8.0 plugin silently ignores them and generates swagger/javax code whose compilation fails; this was reproduced in a /tmp dry-run. `documentationProvider=none` keeps swagger annotations out of generated code — no runtime dependency beyond starter-web. `useBeanValidation=false` and `openApiNullable=false` (exact casing) keep the generated models free of `jakarta.validation` and `org.openapitools.jackson.nullable.JsonNullable` imports, for which the dependency set provides nothing — verified fix. Generation binds to the `generate-sources` phase, so every `mvn test`/`verify` regenerates into `target/generated-sources`.)
 
 - [ ] **Step 3: Verify generation offline**
 
 Run: `mvn -q -f wordcount-service/pom.xml generate-sources`
-Expected: BUILD SUCCESS. Then check:
-Run: `ls target/generated-sources/openapi/src/main/java/dev/kanban/wordcount/api target/generated-sources/openapi/src/main/java/dev/kanban/wordcount/model`
+Expected: BUILD SUCCESS. Then check (from the repo root — do not `cd` into the sibling):
+Run: `ls wordcount-service/target/generated-sources/openapi/src/main/java/dev/kanban/wordcount/api wordcount-service/target/generated-sources/openapi/src/main/java/dev/kanban/wordcount/model`
 Expected: `CountApi.java` and `CountRequest.java CountResponse.java HealthResponse.java Error.java` (plus possibly `ApiUtil.java` — harmless).
 
 ### Task 4: Counting component — unit tests first, then code (card C2)
@@ -444,7 +448,7 @@ class WordCountServiceTest {
 - [ ] **Step 2: Verify RED**
 
 Run: `mvn -q -f wordcount-service/pom.xml test -Dtest=WordCountServiceTest`
-Expected: BUILD FAILURE at compile — `cannot find symbol: class WordCountService`. Paste in result.
+Expected: BUILD FAILURE at compile. RED evidence must name the exact error: `cannot find symbol: class WordCountService` in `WordCountServiceTest.java` — the generated-symbols compile error from Task 3 does not apply here because Task 4 runs on TW2's skeleton before the generator lands (and with the Task-3 fix the generated sources compile cleanly once present). Paste in result.
 
 - [ ] **Step 3: Write the minimal implementation**
 
