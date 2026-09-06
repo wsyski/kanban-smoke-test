@@ -7,3 +7,5 @@ TASK: Write the implementation plan for this task in superpowers writing-plans f
 Save to mission/plans/task-<N>-plan.md, stage it, attach the patch, complete the card with the plan's one-line architecture summary in the result.
 
 REJECT handling: if your card is re-opened with reviewer findings, fix the plan against them, re-stage, re-attach (overwrite the patch), complete again. Max 3 revision rounds.
+
+TURN BUDGET (agent.max_turns=45 per profile): edit by targeted patches to the existing plan file — do NOT re-read the whole plan repeatedly; do NOT re-verify untouched sections. If your card is a revision: fix ONLY the numbered findings, re-verify just the fixed lines (their numbers/behavior), re-stage, complete. Empirical anchor: this exact card completed in 18 tool calls when work was reused (salvage path) vs 64+ when re-derived.

@@ -11,6 +11,7 @@ import json, subprocess, sys, time, os, re, datetime
 
 BOARD = os.environ.get("BOARD", "smoke-test")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TIMING_PATH = os.path.join(REPO, "mission", "timing.jsonl")
 AUTO = "--auto-gates" in sys.argv
 ONCE = "--once" in sys.argv
 POLL = 20
@@ -197,8 +198,17 @@ def gate_action(state, title, kind, task):
         return "gate-held"
     return "skip"
 
+def record_timing(state):
+    """Append one JSONL line: per-card status snapshots for timing analysis."""
+    snap = {t: {"status": c["status"], "id": c["id"]} for t, c in state.items()}
+    entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
+             "epoch": time.time(), "cards": snap}
+    with open(TIMING_PATH, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
 def tick():
     st = state = board()
+    record_timing(st)
     # 1. handoff promotion: blocked card with all parents done -> unblock
     for title, parents, kind, task in CARDS:
         card = st.get(title)
@@ -208,15 +218,23 @@ def tick():
             kb("unblock", card["id"])
             log(f"unblocked {title.split(':')[0]} (parents done)")
     st = state = board()
-    # 2. rework loop on plan REJECT
+    # 2. rework loop on plan REJECT (gates go ready via unblock, so accept
+    #    both blocked and ready — the REJECT verdict itself is the trigger)
     for task in (1, 2):
         n = "2" if task == 2 else "1"
         t, c = title_of_prefix(st, f"Gp{n}:")
-        if c and c["status"] == "blocked":
+        if c and c["status"] in ("blocked", "ready", "todo"):
             verdict = plan_review_pass(st, task)
             if verdict.startswith("REJECT"):
+                # only file the NEXT round if the previous one finished:
+                # any live (non-done) P{n}-rev or RVp{n}-r card = rework in flight
+                live = [t for t in st
+                        if t.startswith(f"P{n}-rev") and st[t]["status"] not in ("done",)
+                        or t.startswith(f"RVp{n}-r") and st[t]["status"] not in ("done",)]
+                if live:
+                    continue
                 m = verdict.split("REJECT:")[1][:1200]
-                rounds = len([x for x in st if x.startswith(f"P{n}-rev")])
+                rounds = len([t for t in st if t.startswith(f"P{n}-rev")])
                 if rounds < 3:
                     file_revision(st, task, rounds + 1, m)
                 else:
