@@ -105,21 +105,53 @@ Per-card (agent time from board run records; wall from 609-tick driver log):
 |---|---|---|---|
 | P1 plan | manager | 16m | verified plan, executed RED/GREEN preview |
 | RVp1 review | reviewer | 14m | PASS, re-derived every number |
+| **Gp1 plan gate** | human | **0m** | verify + commit `cfb1401` (~1 min latency, not work) |
 | TW1 unit tests RED | tester | 9m | 12 tests staged |
 | C1 implement | coder | 3m | 12/12 GREEN |
 | RVa1 review | reviewer | 12m | PASS |
+| **Gc1 code gate** | human | **0m** | suite+commit `8482b99` |
 | P2 plan | manager | 1m | completed from staged reuse (same file fresh: 16–23m) |
 | RVp2 review | reviewer | 14m | REJECT: 3 pom errors (reproduced) |
 | revision round 1 | manager | 11m | fixes staged, verifier caught unstaged state |
 | RVp2-r2 review | reviewer | 11m | REJECT: XML corrupt + dependency contradiction |
 | revision round 2 | manager | 23m | 4 findings, parse-verified |
 | RVp2-r3 review | reviewer | 10m | PASS |
+| **Gp2 plan gate** | human | **0m** | verify + commit `0760d50` |
 | TW2 contract tests | tester | 5m | 7 tests RED-first |
 | C2 implement | coder | 24m | openapi + service + controller + tests |
 | RVa2 review | reviewer | 15m | PASS |
 | TI2 failsafe ITs | tester | 2m | 6/6 IT, `mvn verify` |
 | RVc2 final review | reviewer | 5m | PASS |
+| **Gc2 code gate** | human | **0m** | suite evidence GREEN + commit `479f8e7` |
 | **agent work total** | | **175 min** | |
+
+Gates execute in 0 agent time by design — the human verifies/commits/pushes
+there (their wall-clock latency is counted in the overhead section, not as
+work). This table IS the execution order: every card is listed in the
+sequence the board ran it.
+
+### How it flows (one diagram)
+
+```
+        task 1                                   task 2
+  P1 → RVp1 → Gp1 ─────────────────────→  P2 → RVp2 → Gp2 ──────────────────┐
+                  │ commit plan            ↑      │                        ↓
+                  │ (reuse path possible)  PASS   │          TW2 → C2 → RVa2
+   Gp1 unlocks    ▼                        ↑      │                        │
+     TW1 → C1 → RVa1 → Gc1 ────────────────┘      │                        ▼
+     (0 agent min; human commit)                  └── Gp2 commit ──→ TI2 → RVc2 → Gc2
+                                                                        (0 agent min)
+```
+
+Rework loop (driven by REJECT verdicts, all inside the plan phase):
+
+```
+RVp(n) ──REJECT──→ P(n)-rev-N (fix) → RVp(n)-r(n+1) ──PASS──→ Gp(n) opens, up to 3 rounds
+```
+
+Gates = 0 work because the driver completes them as "HUMAN COMMIT REQUIRED":
+they exist to be the single authorization point where the human's git write
+unlocks the rest of the chain (board-enforced sequencing, no orchestrator).
 
 ### Where the 38 min of wall-vs-work overhead goes (estimates)
 
