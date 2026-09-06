@@ -236,6 +236,7 @@ def record_timing(state):
         except Exception:
             continue
         row = None
+        turns = None
         for line in out.splitlines():
             s = line.strip().split()
             if len(s) > 3 and s[0].isdigit():
@@ -243,6 +244,17 @@ def record_timing(state):
                        "started": " ".join(s[-5:])}
         if row:
             c["last_run"] = row
+        try:
+            ev = json.loads(kb("show", c["id"], "--json"))
+            kinds = [e.get("kind") for e in ev.get("events", [])]
+            hb = sum(1 for e in ev.get("events", []) if e.get("kind") == "heartbeat")
+            for e in ev.get("events", []):
+                p = e.get("payload") or {}
+                if e.get("kind") == "gave_up" and isinstance(p, dict) and p.get("budget_used"):
+                    c["budget_used"] = p["budget_used"]
+            c["hb_count"] = hb
+        except Exception:
+            pass
     record_timing._prev = {t: {"status": c["status"], "last_run": c.get("last_run")}
                            for t, c in snap.items()}
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -303,6 +315,103 @@ def tick():
     _, gc2 = title_of_prefix(st, "Gc2:")
     return gc2 and gc2["status"] == "done"
 
+def block_reason(card):
+    """Blocked-kind string from the card run summary, e.g. 'needs_input'."""
+    r = (card.get("result") or "") + " " + (card.get("summary") or "")
+    if "needs_input" in r:
+        return "needs_input"
+    return "other"
+
+def notify_deadman(state):
+    stuck = [f"{t.split(':')[0]}" for t, c in state.items()
+             if c["status"] == "blocked" and block_reason(c).startswith("needs_input")]
+    msg = f"kanban-smoke DEADMAN: {len(stuck)} cards awaiting human input: {', '.join(stuck[:6])}"
+    log(msg)
+    with open("/tmp/kanban-deadman.txt", "w") as f:
+        f.write(msg + "\n")
+    # Telegram if the manager gateway is configured; else the file suffices
+    try:
+        import urllib.request, urllib.parse
+        tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        chat = os.environ.get("TELEGRAM_ALLOWED_USERS", "").split(",")[0]
+        if tok and chat:
+            u = f"https://api.telegram.org/bot{tok}/sendMessage"
+            data = urllib.parse.urlencode({"chat_id": chat, "text": msg}).encode()
+            urllib.request.urlopen(urllib.request.Request(u, data=data), timeout=10)
+    except Exception:
+        pass
+
+def preserve_artifacts(task):
+    """Copy every completed card's provenance patch into mission/artifacts/
+    <runid>/ so per-task diffs live next to the code commit they produced."""
+    import shutil, glob, datetime
+    run_id = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    out_dir = os.path.join(REPO, "mission", "artifacts", run_id)
+    os.makedirs(out_dir, exist_ok=True)
+    st = board()
+    for title, card in st.items():
+        cid = (card or {}).get("id")
+        if not cid:
+            continue
+        for src in glob.glob(os.path.expanduser(
+                f"~/.hermes/kanban/boards/{BOARD}/attachments/{cid}/*.patch")):
+            dst = os.path.join(out_dir, f"{cid}.patch")
+            if not os.path.exists(dst):
+                shutil.copy2(src, dst)
+                log(f"artifact kept: mission/artifacts/{run_id}/{os.path.basename(dst)}")
+
+def write_summary(state):
+    """One-shot per-run summary: commit SHAs, per-card agent minutes, budget
+    events, overhead ratio — one jq-able file per completed run."""
+    import collections
+    rows = {}
+    total = 0.0
+    for title, c in state.items():
+        if c["status"] != "done":
+            continue
+        try:
+            out = kb("runs", c["id"])
+        except Exception:
+            continue
+        mins = 0.0
+        gave_up = None
+        for line in out.splitlines():
+            s = line.strip().split()
+            if len(s) > 4 and s[0].isdigit() and s[1] in ("completed", "gave_up"):
+                try:
+                    el = s[3].rstrip("ms")
+                    mins += float(int(el[:-1]) / 60 if el.endswith("s") else el[:-1])
+                except (ValueError, IndexError):
+                    pass
+                if s[1] == "gave_up":
+                    gave_up = True
+        if c["result"] or True:
+            try:
+                ev = json.loads(kb("show", c["id"], "--json"))
+                for e in ev.get("events", []):
+                    p = e.get("payload") or {}
+                    if e.get("kind") == "gave_up" and isinstance(p, dict) and p.get("budget_used"):
+                        gave_up = p["budget_used"]
+            except Exception:
+                pass
+        rows[title] = {"card_id": c["id"], "agent_min": mins}
+        if gave_up:
+            rows[title]["gave_up_budget"] = gave_up
+        total += mins
+    t0 = getattr(write_summary, "_t0", None) or time.time()
+    summary = {
+        "finished_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "wall_min": round((time.time() - t0) / 60, 1),
+        "agent_work_min": round(total, 1),
+        "overhead_min": round((time.time() - t0) / 60 - total, 1),
+        "cards": rows,
+        "gate_commits": {t.split(":")[0]: (m.group(0) if (m := re.search(r"[0-9a-f]{7,40}", c.get("result") or "")) else None)
+                         for t, c in state.items() if t.startswith(("Gp", "Gc"))},
+    }
+    with open(os.path.join(REPO, "mission", "run-summary.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+    log(f"summary written: mission/run-summary.json ({total:.0f} min agent work)")
+
 def main():
     t0 = time.time()
     timeout = 120 * 60
@@ -313,6 +422,11 @@ def main():
         try:
             if tick():
                 log("ALL GATES COMPLETE — scenario finished")
+                try:
+                    st = board()
+                    write_summary(st)
+                except Exception:
+                    log("WARNING: summary generation failed (non-fatal)")
                 return 0
         except Exception as e:
             import traceback
@@ -321,6 +435,14 @@ def main():
                 pass  # keep driving; transient errors are expected during runs
             else:
                 raise
+        # deadman: notify instead of silent stall after repeat gave-ups
+        st_now = board()
+        ni_count = sum(1 for t, c in st_now.items()
+                       if c["status"] == "blocked"
+                       and block_reason(c).startswith("needs_input"))
+        if ni_count >= 2:
+            log(f"DEADMAN: {ni_count} cards blocked needs_input — human attention required")
+            notify_deadman(st_now)
         if ONCE:
             return 0
         if time.time() - t0 > timeout:
