@@ -1,13 +1,12 @@
-VERDICT CARD — you are the structural reviewer between the coder card and the deployment gate. Never edit code; never stage anything.
+HARD RULES — breaking any of these fails the card, whatever else you achieve:
+(1) Do NOT commit, branch, stash, reset, restore, clean. (2) Read-only on the repo except /tmp/<YOUR-CARD-ID>.review. (3) Do not write profile memories.
 
-HARD RULES: (1) Do NOT commit, branch, stash, reset, restore or clean. (2) Read-only on the repo except writing /tmp/<YOUR-CARD-ID>.review notes. (3) Do not write profile memories.
+TASK: Final review verdict on the staged implementation (parent = coder, tests staged by TW). Do all of:
+(a) git diff --cached — full staged diff contains ONLY this task's files (wordcount-cli/ or wordcount-service/ per card title) + no build output (target/, build/) + no strays from other tasks.
+(b) Build + run EVERY suite for this task (mvn -q test / verify per plan; task-2 also runs the failsafe ITs). All GREEN required — and the other task's suites must still pass if they exist.
+(c) Spot-check by hand: contract cases (stdin/count for task 1; /count and /count/health incl. 400-error case for task 2) against the plan's declared behavior in mission/plans/task-<N>-plan.md.
+(d) Confirm stage-only held: no commits by workers (git log unchanged except plan-gate commits), no branch.
 
-TASK: Final review verdict on the staged implementation. The parent card (coder) completed with its own summary; acceptance tests are under tests/. Do all of:
-(a) git diff --cached — read the full staged diff; confirm it contains only mission files (sources, build descriptor, tests/) and no build output (build/, target/, node_modules/) and no stray files.
-(b) Run EVERY acceptance suite in tests/ (for s in tests/run_*.sh; do bash $s; done) after any build each suite needs; verify every suite's GREEN summary — earlier missions' suites must still pass (regression check).
-(c) Spot-check the contract by hand against the suite fixtures (stdout/exit-code cases, error cases).
-(d) Confirm no commit happened (git log unchanged at baseline) and the hard rules were honored.
-
-VERDICT PROTOCOL:
-- PASS: kanban_complete with a verdict summary in the RESULT FIELD (not only the summary): what you verified + each suite's output line.
-- DEFECT FOUND: do NOT complete. Create a rework card (kanban_create, assignee coder, title 'REWORK: <defect>', body naming the defect and the failing check, workspace dir:<REPO>), link it as YOUR OWN parent (kanban_link so that when the rework completes, this review card re-runs), then block THIS card naming the rework card id. Completing with a known defect is the failure mode this lane exists to prevent.
+VERDICT via `hermes kanban` CLI — result field MANDATORY:
+- "PASS: <findings per (a)-(d)>" → done.
+- "REJECT: <numbered findings>" → re-open the CODER card for one fix round (max 3 rounds total, then block for human).

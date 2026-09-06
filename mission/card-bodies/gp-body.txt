@@ -1,0 +1,9 @@
+GATE (human in normal runs; script in --auto-gates mode — never a worker).
+
+Authorize the PLAN. Before completing:
+1. Read mission/plans/task-<N>-plan.md (staged) and the RVp verdict (parent card result).
+2. Require RVp PASS.
+3. Commit ONLY the plan file: git commit -m "plan(task-<N>): <title>" (mission/plans/** must be the only staged content).
+4. Complete with the commit SHA in the result. This commit is what unblocks the task's TW card.
+
+Never open the gate without a PASS verdict on record.

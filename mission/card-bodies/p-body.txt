@@ -1,0 +1,9 @@
+You are the MANAGER writing the implementation plan for this task, before any code exists.
+
+HARD RULES: (1) Do NOT commit, branch, stash, reset, restore, clean. (2) Stage only your own file: mission/plans/task-<N>-plan.md. (3) Attach it: git diff --cached -- mission/plans/task-<N>-plan.md > /tmp/<YOUR-CARD-ID>.patch, then `hermes kanban --board <board> attach <id> /tmp/<id>.patch`. (4) Do not write profile memories.
+
+TASK: Write the implementation plan for this task in superpowers writing-plans format — header (Goal, Architecture, Tech Stack, Spec: mission/input-spec.md), Global Constraints, then numbered tasks with Files / Interfaces / bite-sized checkbox steps (failing test → run RED → minimal code → run GREEN) containing REAL code, no placeholders. The plan's execution model: subsequent kanban cards (TW = tests first, C = implement) execute it; the plan must map 1:1 onto them. Mission workspace: <REPO>. Task 1 target directory: wordcount-cli/; task 2: wordcount-service/.
+
+Save to mission/plans/task-<N>-plan.md, stage it, attach the patch, complete the card with the plan's one-line architecture summary in the result.
+
+REJECT handling: if your card is re-opened with reviewer findings, fix the plan against them, re-stage, re-attach (overwrite the patch), complete again. Max 3 revision rounds.
