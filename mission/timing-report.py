@@ -88,8 +88,13 @@ def main():
     if not snaps:
         print("no timing data — is mission/timing.jsonl empty?")
         return 1
+    # use only the LAST run segment (split on run_boundary markers)
+    last_b = max((i for i, s in enumerate(snaps) if s.get("run_boundary")), default=None)
+    if last_b is not None:
+        snaps = snaps[last_b:]
+        print("(report covers the latest run segment; earlier segments in the file)")
     t0, t1 = snaps[0]["epoch"], snaps[-1]["epoch"]
-    tr = transitions(snaps)
+    tr = transitions([s for s in snaps if "cards" in s])
     statuses = collections.Counter()
     for (title, status), _ in [(k, v) for k, v in tr.items() if len(k) == 2]:
         statuses[status] += 1
@@ -101,7 +106,7 @@ def main():
     print()
     print(f"{'card':<50} {'first_running':>13} {'done_at':>13} {'status':>8}")
     print("-" * 90)
-    order = sorted({t for (t, s) in tr if len((t, s)) == 2},
+    order = sorted({k[0] for k in tr if len(k) == 2},
                    key=lambda t: tr.get((t, "running"), t1) or t1)
     work_total = 0.0
     for title in order:

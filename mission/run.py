@@ -189,6 +189,8 @@ def gate_action(state, title, kind, task):
         verdict_txt = verdict(state, f"RV{'c' if task==2 else 'a'}{n}")
         if not verdict_txt.startswith("PASS"):
             return f"waiting: final review verdict = {verdict_txt[:40]!r}"
+        suite = f"{suite_line(task)}"
+        log(f"GATE {title.split(':')[0]} suite evidence: {suite}")
         if AUTO:
             # stage-only: no suite-run/commit here — human gate does that.
             complete_gate(title, "", f"code task-{n} staged — human commit required")
@@ -198,9 +200,51 @@ def gate_action(state, title, kind, task):
         return "gate-held"
     return "skip"
 
+def suite_line(task):
+    import subprocess as sp
+    if task == 1:
+        r = sp.run(["mvn","-q","test"],cwd=f"{REPO}/wordcount-cli",capture_output=True,text=True)
+        out = f"(mvn -q test rc={r.returncode})"
+    else:
+        r = sp.run(["mvn","-q","verify"],cwd=f"{REPO}/wordcount-service",capture_output=True,text=True)
+        m = re.findall(r"Tests run: \d+, Failures: \d+, Errors: \d+", r.stdout)
+        out = f"(mvn verify rc={r.returncode}, last: {m[-1] if m else 'no test summary'})"
+    return "GREEN " + out if r.returncode == 0 else "FAIL " + out
+
 def record_timing(state):
-    """Append one JSONL line: per-card status snapshots for timing analysis."""
+    """Append one JSONL line: per-card status snapshots for timing analysis.
+    Every process start emits a run-boundary marker so the report can split
+    multiple replays in one file."""
+    if not hasattr(record_timing, "_started"):
+        with open(TIMING_PATH, "a") as f:
+            f.write(json.dumps({"run_boundary": True,
+                                "ts": datetime.datetime.now().isoformat(timespec="seconds"),
+                                "epoch": time.time(),
+                                "argv": sys.argv[1:]}) + "\n")
+        record_timing._started = True
     snap = {t: {"status": c["status"], "id": c["id"]} for t, c in state.items()}
+    # enrich cards whose status CHANGED since last tick with their runs
+    # data (spawns/elapsed/budget) — self-contained evidence, no CLI at
+    # report time; only fires on transitions, so cost is a handful of calls
+    cache = getattr(record_timing, "_prev", {})
+    for t, c in list(snap.items()):
+        prev = cache.get(t)
+        if prev is not None and prev.get("status") == c["status"]:
+            continue
+        try:
+            out = kb("runs", c["id"])
+        except Exception:
+            continue
+        row = None
+        for line in out.splitlines():
+            s = line.strip().split()
+            if len(s) > 3 and s[0].isdigit():
+                row = {"outcome": s[1], "elapsed_raw": s[3] if len(s) > 3 else "",
+                       "started": " ".join(s[-5:])}
+        if row:
+            c["last_run"] = row
+    record_timing._prev = {t: {"status": c["status"], "last_run": c.get("last_run")}
+                           for t, c in snap.items()}
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
              "epoch": time.time(), "cards": snap}
     with open(TIMING_PATH, "a") as f:
