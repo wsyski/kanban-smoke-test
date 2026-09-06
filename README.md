@@ -147,10 +147,24 @@ Notes on the work vs wall split:
 ### Timing instrumentation (on the board itself)
 
 - Driver tick every 20 s appends a status snapshot to
-  `mission/timing.jsonl` (one JSON line per tick: card → status + id).
-- After the run: `python3 mission/timing-report.py` — merges per-tick
-  transitions with per-card run records (ELAPSED from
-  `hermes kanban runs <id>`) into the per-card table + totals above.
+  `mission/timing.jsonl` (one JSON line per tick); a run-boundary marker
+  (ts, argv) is written at every driver start so the report covers only the
+  latest run segment.
+- On each card status *change* the driver embeds the card's run evidence
+  into that tick's snapshot: `last_run` (outcome/elapsed), `hb_count`
+  (heartbeats ≈ wall-minutes worked), `budget_used` on gave_up.
+- At a code gate the driver runs the suite itself and logs
+  `GATE GcN suite evidence: GREEN/FAIL (…)` — verification is a log line,
+  the human still owns the commit.
+- On completion the driver writes `mission/run-summary.json` (one jq-able
+  file per run): per-card agent minutes, budget-exhaustion events, wall +
+  overhead totals, gate commit SHAs.
+- If ≥2 cards end up blocked/needs_input, a DEADMAN notice is logged and
+  written to `/tmp/kanban-deadman.txt` (Telegram sent if env tokens set).
+- Per-card provenance patches are preserved to `mission/artifacts/<run>/`
+  so they survive board archiving.
+- After the run: `python3 mission/timing-report.py` builds the per-card
+  table + totals from the segment (report covers the latest segment only).
 - Gate cards are the chain checkpoints: gate completion timestamps delimit
   planning vs build vs review phases per task.
 
